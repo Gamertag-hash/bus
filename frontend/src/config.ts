@@ -1,27 +1,30 @@
-// Get API URL based on environment
+const defaultApiUrl = 'http://localhost:4000';
+
 const getApiUrl = () => {
+  const envApiUrl = import.meta.env.VITE_API_URL?.trim();
+
   if (typeof window !== 'undefined') {
-    // Client-side
     const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    
+
     if (isDev) {
-      return 'http://localhost:4000';
+      return envApiUrl || defaultApiUrl;
     }
-    
-    // Production: assume backend is on the same domain
-    return window.location.origin.replace(/^http/, 'http');
+
+    return envApiUrl || window.location.origin;
   }
-  
-  // Server-side fallback
-  return process.env.REACT_APP_API_URL || 'http://localhost:4000';
+
+  return envApiUrl || defaultApiUrl;
 };
 
 export const API_URL = getApiUrl();
 
 export const getSocketUrl = () => {
+  const envApiUrl = import.meta.env.VITE_API_URL?.trim();
+
   if (typeof window !== 'undefined') {
     const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    return isDev ? 'http://localhost:4000' : window.location.origin;
+    return isDev ? envApiUrl || defaultApiUrl : envApiUrl || window.location.origin;
   }
-  return 'http://localhost:4000';
+
+  return envApiUrl || defaultApiUrl;
 };

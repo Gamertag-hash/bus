@@ -15,19 +15,33 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+app.set('trust proxy', 1);
 
-// Allow development and production origins
+const configuredOrigins = [process.env.FRONTEND_URL, process.env.CORS_ORIGIN]
+  .filter((value): value is string => Boolean(value))
+  .map((value) => value.trim());
+
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:4173',
-  process.env.FRONTEND_URL || '',
+  ...configuredOrigins,
 ];
+
+const isAllowedOrigin = (origin: string | undefined) => {
+  if (!origin) return true;
+
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+
+  return /^https:\/\/[-\w]+\.vercel\.app$/i.test(origin);
+};
 
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
@@ -41,10 +55,16 @@ const prisma = new PrismaClient();
 const jwtSecret = process.env.JWT_SECRET || 'secret';
 const adminEmail = process.env.ADMIN_EMAIL || 'starklab73@gmail.com';
 const adminPassword = process.env.ADMIN_PASSWORD || '12345@';
+const isProduction = process.env.NODE_ENV === 'production';
+const cookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
+};
 
 app.use(cors({ 
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -113,7 +133,7 @@ app.post('/api/auth/register', async (req, res) => {
   });
 
   const token = signToken({ id: user.id, role: user.role });
-  res.cookie('token', token, { httpOnly: true, sameSite: 'lax' });
+  res.cookie('token', token, cookieOptions);
   res.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } });
 });
 
@@ -133,12 +153,12 @@ app.post('/api/auth/login', async (req, res) => {
   if (user.isBlocked) return res.status(403).json({ message: 'User is blocked' });
 
   const token = signToken({ id: user.id, role: user.role });
-  res.cookie('token', token, { httpOnly: true, sameSite: 'lax' });
+  res.cookie('token', token, cookieOptions);
   res.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } });
 });
 
 app.get('/api/auth/logout', (_req, res) => {
-  res.clearCookie('token');
+  res.clearCookie('token', cookieOptions);
   res.json({ message: 'Logged out' });
 });
 
@@ -194,7 +214,7 @@ app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile',
 app.get('/api/auth/google/callback', passport.authenticate('google', { session: false, failureRedirect: '/login' }), async (req: any, res) => {
   const user = req.user;
   const token = signToken({ id: user.id, role: user.role });
-  res.cookie('token', token, { httpOnly: true, sameSite: 'lax' });
+  res.cookie('token', token, cookieOptions);
   
   // Redirect to frontend URL (use environment variable or fallback to localhost)
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
