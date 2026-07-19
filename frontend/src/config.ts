@@ -1,4 +1,4 @@
-const defaultApiUrl = 'http://localhost:4000';
+const defaultApiUrl = 'https://bus-production-397a.up.railway.app';
 
 const getApiUrl = () => {
   const envApiUrl = import.meta.env.VITE_API_URL?.trim();

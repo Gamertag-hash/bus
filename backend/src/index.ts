@@ -25,6 +25,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:4173',
+  'https://bus-sanjosaji006-8246s-projects.vercel.app',
   ...configuredOrigins,
 ];
 
