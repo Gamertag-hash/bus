@@ -15,9 +15,24 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+
+// Allow development and production origins
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:4173',
+  process.env.FRONTEND_URL || '',
+];
+
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   },
 });
@@ -27,7 +42,16 @@ const jwtSecret = process.env.JWT_SECRET || 'secret';
 const adminEmail = process.env.ADMIN_EMAIL || 'starklab73@gmail.com';
 const adminPassword = process.env.ADMIN_PASSWORD || '12345@';
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+app.use(cors({ 
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 app.use(cookieParser());
 app.use(passport.initialize());
@@ -171,7 +195,10 @@ app.get('/api/auth/google/callback', passport.authenticate('google', { session: 
   const user = req.user;
   const token = signToken({ id: user.id, role: user.role });
   res.cookie('token', token, { httpOnly: true, sameSite: 'lax' });
-  res.redirect('http://localhost:5173');
+  
+  // Redirect to frontend URL (use environment variable or fallback to localhost)
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  res.redirect(frontendUrl);
 });
 
 app.get('/api/users/me', authenticate, async (req, res) => {

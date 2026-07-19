@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { io } from 'socket.io-client';
 import { MapContainer, Marker, TileLayer, Popup } from 'react-leaflet';
 import L from 'leaflet';
+import { API_URL, getSocketUrl } from './config';
 import './styles.css';
 
 const markerIcon = L.icon({
@@ -51,8 +52,8 @@ type RegisterForm = {
   role: 'STUDENT' | 'TEACHER';
 };
 
-const apiBase = 'http://localhost:4000/api';
-const socket = io('http://localhost:4000', { withCredentials: true });
+const apiBase = `${API_URL}/api`;
+const socket = io(getSocketUrl(), { withCredentials: true });
 
 function apiRequest(path: string, options: RequestInit = {}) {
   return fetch(`${apiBase}${path}`, {
